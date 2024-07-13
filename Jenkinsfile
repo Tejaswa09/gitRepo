@@ -6,10 +6,20 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Main') {
             steps {
-                // Checkout the repository
-                checkout scm
+                checkout([$class: 'GitSCM', branches: [[name: 'main']],
+                          userRemoteConfigs: [[url: 'https://github.com/Tejaswa09/gitRepo']]])
+            }
+        }
+
+        stage('Checkout Target Branch') {
+            steps {
+                script {
+                    def targetBranch = env.CHANGE_TARGET ?: 'main'
+                    checkout([$class: 'GitSCM', branches: [[name: targetBranch]],
+                              userRemoteConfigs: [[url: 'https://github.com/Tejaswa09/gitRepo']]])
+                }
             }
         }
         
@@ -23,7 +33,6 @@ pipeline {
 
                     // Log the PR details to the log file
                     sh """
-                        #!/bin/bash
                         echo "$(date +'%Y-%m-%d %H:%M:%S') - PR received: ID=${pr_id}, Author=${pr_author}, Title=${pr_title}" >> ${LOG_FILE}
                     """
                 }
@@ -31,10 +40,4 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            // Optionally, archive the log file or perform any cleanup
-            archiveArtifacts artifacts: "${LOG_FILE}", allowEmptyArchive: true
-        }
-    }
-}
+    post
